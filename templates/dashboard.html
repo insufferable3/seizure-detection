@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>NeuroGuard — Research Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand"><span class="brand-mark">N</span><span>NEUROGUARD</span></div>
+  <nav>
+    <a class="nav-active" href="/">Research</a>
+    <a href="/predict">New Prediction</a>
+  </nav>
+</header>
+
+<main class="shell">
+  <section class="hero">
+    <div class="eyebrow">EEG SEIZURE DETECTION · RESEARCH SYSTEM</div>
+    <h1>Research Dashboard</h1>
+    <p>Experimental pipeline, model evaluation, feature selection and event-level results.</p>
+    <div class="hero-actions">
+      <a class="primary-btn" href="/predict">Analyze a new EDF <span>→</span></a>
+      <span class="status-dot">● Research results</span>
+    </div>
+  </section>
+
+  <section class="stats-grid">
+    <div class="stat-card"><span>EEG windows</span><strong>5,033</strong><small>5-second windows</small></div>
+    <div class="stat-card"><span>Original features</span><strong>230</strong><small>time + frequency domain</small></div>
+    <div class="stat-card"><span>GA selected</span><strong>107</strong><small>selected feature set</small></div>
+    <div class="stat-card"><span>Seizure windows</span><strong>45</strong><small>vs 4,988 non-seizure</small></div>
+  </section>
+
+  <section class="section">
+    <div class="section-kicker">01 · DATA & PIPELINE</div>
+    <div class="section-title-row"><div><h2>From raw EEG to seizure events</h2><p>The complete research workflow used in the experiment.</p></div></div>
+    <div class="pipeline">
+      <div><b>01</b><strong>CHB-MIT EEG</strong><span>EDF recordings</span></div>
+      <i>→</i>
+      <div><b>02</b><strong>Windowing</strong><span>5-second segments</span></div>
+      <i>→</i>
+      <div><b>03</b><strong>Features</strong><span>230 descriptors</span></div>
+      <i>→</i>
+      <div><b>04</b><strong>GA selection</strong><span>107 selected</span></div>
+      <i>→</i>
+      <div><b>05</b><strong>Classifier</strong><span>Random Forest</span></div>
+      <i>→</i>
+      <div><b>06</b><strong>Events</strong><span>merge + duration</span></div>
+    </div>
+
+    <div class="two-col">
+      <article class="panel">
+        <div class="panel-head"><h3>Feature extraction</h3><span>230 total</span></div>
+        <div class="feature-list">
+          <div><strong>Time domain</strong><span>Mean · Std · Variance · RMS · Energy</span></div>
+          <div><strong>Frequency domain</strong><span>Delta · Theta · Alpha · Beta · Gamma power</span></div>
+          <div><strong>Window</strong><span>5 seconds · 256 Hz sampling</span></div>
+        </div>
+      </article>
+      <article class="panel">
+        <div class="panel-head"><h3>Class distribution</h3><span>5,033 windows</span></div>
+        <div class="bar-label"><span>Non-seizure</span><b>4,988</b></div>
+        <div class="bar"><span style="width:99.1%"></span></div>
+        <div class="bar-label"><span>Seizure</span><b>45</b></div>
+        <div class="bar"><span style="width:0.9%"></span></div>
+        <p class="muted">The dataset is strongly imbalanced; precision, recall and event-level metrics are therefore shown alongside accuracy.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-kicker">02 · MODEL EVALUATION</div>
+    <div class="section-title-row">
+      <div><h2>Recall and F1 first</h2><p>Held-out window-level results. Accuracy is shown for completeness, but class imbalance makes it an unreliable headline metric.</p></div>
+      <span class="tag">TEST SET · 1,007 WINDOWS</span>
+    </div>
+
+    <div class="metric-grid priority-metrics">
+      <div class="metric primary-metric"><span>Recall</span><strong>42.22%</strong><em>Seizure windows detected</em></div>
+      <div class="metric primary-metric"><span>F1 score</span><strong>54.29%</strong><em>Precision–recall balance</em></div>
+      <div class="metric"><span>Precision</span><strong>76.00%</strong><em>Positive predictive value</em></div>
+      <div class="metric subdued-metric"><span>Accuracy</span><strong>99.36%</strong><em>Inflated by imbalance</em></div>
+    </div>
+
+    <div class="visual-grid">
+      <article class="panel visual-card">
+        <div class="panel-head"><div><h3>Confusion matrix</h3><span class="subhead">Held-out test set</span></div></div>
+        <div class="heatmap" aria-label="Confusion matrix heatmap">
+          <div></div><div class="axis-label">Predicted 0</div><div class="axis-label">Predicted 1</div>
+          <div class="axis-label vertical">Actual 0</div><div class="heat-cell high"><b>4,982</b><span>TN</span></div><div class="heat-cell low"><b>6</b><span>FP</span></div>
+          <div class="axis-label vertical">Actual 1</div><div class="heat-cell low"><b>26</b><span>FN</span></div><div class="heat-cell mid"><b>19</b><span>TP</span></div>
+        </div>
+        <div class="matrix-note"><span>TN 4,982</span><span>FP 6</span><span>FN 26</span><span>TP 19</span></div>
+      </article>
+
+      <article class="panel visual-card">
+        <div class="panel-head"><div><h3>Precision–recall view</h3><span class="subhead">Operating-point context</span></div></div>
+        <div class="chart-box">
+          <svg viewBox="0 0 520 230" role="img" aria-label="Illustrative precision recall operating-point plot">
+            <line x1="54" y1="18" x2="54" y2="190" class="chart-axis"/>
+            <line x1="54" y1="190" x2="492" y2="190" class="chart-axis"/>
+            <text x="20" y="24">1.0</text><text x="20" y="108">0.5</text><text x="25" y="194">0</text>
+            <text x="48" y="215">0</text><text x="260" y="215">Recall</text><text x="474" y="215">1</text>
+            <path d="M54 34 C95 42 126 57 160 72 C202 91 244 108 282 126 C324 146 365 158 410 170 C442 178 468 184 492 188" class="curve"/>
+            <circle cx="239" cy="105" r="6" class="plot-point"/>
+            <text x="250" y="99">reported point</text>
+            <text x="68" y="42" class="plot-label">Precision</text>
+          </svg>
+        </div>
+        <p class="chart-note">The reported test operating point is 76% precision / 42.2% recall. The curve is presented as a visual explanation of the precision–recall tradeoff rather than a recomputed source-data PR curve.</p>
+      </article>
+
+      <article class="panel visual-card">
+        <div class="panel-head"><div><h3>Recall vs threshold</h3><span class="subhead">Threshold study</span></div></div>
+        <div class="chart-box">
+          <svg viewBox="0 0 520 230" role="img" aria-label="Recall versus threshold">
+            <line x1="54" y1="18" x2="54" y2="190" class="chart-axis"/>
+            <line x1="54" y1="190" x2="492" y2="190" class="chart-axis"/>
+            <text x="18" y="24">100%</text><text x="23" y="108">50%</text><text x="30" y="194">0</text>
+            <text x="49" y="215">0.05</text><text x="250" y="215">Threshold</text><text x="465" y="215">0.95</text>
+            <path d="M54 46 L78 46 L102 46 L126 58 L150 58 L174 58 L198 58 L222 72 L246 84 L270 98 L294 112 L318 126 L342 137 L366 148 L390 158 L414 169 L438 177 L462 183 L486 187" class="curve"/>
+            <circle cx="150" cy="58" r="6" class="plot-point"/>
+            <text x="160" y="52" class="plot-label">88.9% recall</text>
+          </svg>
+        </div>
+        <p class="chart-note">The recall study reached 88.9% recall at selected operating points under the stated validation precision constraint. Exact curve values are not reconstructed beyond the reported experiment outputs.</p>
+      </article>
+
+      <article class="panel visual-card">
+        <div class="panel-head"><div><h3>GA feature importance</h3><span class="subhead">Top 15 selected features</span></div></div>
+        <div class="feature-bars">
+          {% set feats = [
+            ("ch0_gamma_power", 100),("ch2_beta_power", 91),("ch1_alpha_power", 84),
+            ("ch3_theta_power", 79),("ch4_gamma_power", 73),("ch5_beta_power", 68),
+            ("ch6_std", 63),("ch7_rms", 59),("ch8_energy", 55),
+            ("ch9_alpha_power", 50),("ch10_variance", 46),("ch11_beta_power", 42),
+            ("ch12_std", 38),("ch13_theta_power", 34),("ch14_energy", 30)
+          ] %}
+          {% for name, val in feats %}
+          <div class="feature-row"><span title="{{ name }}">{{ name }}</span><div class="feature-track"><i style="width:{{ val }}%"></i></div></div>
+          {% endfor %}
+        </div>
+        <p class="chart-note">These bars are a presentation placeholder unless a saved feature-importance export is supplied; they should not be described as measured RF importance values.</p>
+      </article>
+    </div>
+
+    <div class="confusion">
+      <div><span>TN</span><strong>4,982</strong></div><div><span>FP</span><strong>6</strong></div>
+      <div><span>FN</span><strong>26</strong></div><div><span>TP</span><strong>19</strong></div>
+    </div>
+  </section>
+
+  <section class="section recall-section">
+    <div class="section-kicker">03 · RECALL OPTIMIZATION</div>
+    <div class="section-title-row">
+      <div>
+        <h2>Improving seizure recall</h2>
+        <p>Separate threshold-tuning experiment using a stratified train / validation / test split.</p>
+      </div>
+      <span class="tag">WINDOW-LEVEL · RECALL-TUNING SPLIT</span>
+    </div>
+
+    <div class="recall-summary">
+      <div class="recall-stat">
+        <span>Baseline</span><strong>44.4%</strong>
+        <small>Recall · threshold 0.50</small>
+      </div>
+      <div class="recall-transition"><b>+44.5 pp</b><span>after threshold optimization</span></div>
+      <div class="recall-stat tuned">
+        <span>Recall-tuned</span><strong>88.9%</strong>
+        <small>Recall · threshold 0.25</small>
+      </div>
+    </div>
+
+    <div class="table-wrap recall-table">
+      <table>
+        <thead><tr><th>Configuration</th><th>Threshold</th><th>Recall</th><th>Precision</th><th>F1</th><th>FP</th><th>FN</th></tr></thead>
+        <tbody>
+          <tr><td>Baseline</td><td>0.50</td><td>44.4%</td><td>66.7%</td><td>53.3%</td><td>2</td><td>5</td></tr>
+          <tr><td>Class-weighted</td><td>0.50</td><td>77.8%</td><td>53.8%</td><td>63.6%</td><td>6</td><td>2</td></tr>
+          <tr class="recall-highlight"><td><strong>Class-weighted + tuned threshold</strong></td><td><strong>0.25</strong></td><td><strong>88.9%</strong></td><td>42.1%</td><td>57.1%</td><td>11</td><td>1</td></tr>
+          <tr><td>Random oversampling</td><td>0.50</td><td>66.7%</td><td>60.0%</td><td>63.2%</td><td>4</td><td>3</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="recall-explanation">
+      <div><strong>Why did recall increase?</strong><span>The original 0.50 decision threshold was conservative. Lowering the threshold increases seizure windows classified as positive, reducing false negatives but increasing false positives.</span></div>
+      <div><strong>Important distinction</strong><span>The 44.4% → 88.9% change belongs to this recall-tuning experiment. The main baseline evaluation above uses a different held-out split and reports 42.22% recall.</span></div>
+    </div>
+  </section>
+
+<section class="section">
+    <div class="section-kicker">04 · EEG SIGNAL VIEW</div>
+    <div class="section-title-row">
+      <div><h2>Sample EEG trace</h2><p>Illustrative seizure-region overlay for explaining the event-level output.</p></div>
+      <span class="tag">CHB03 · SAMPLE VIEW</span>
+    </div>
+    <article class="panel signal-panel">
+      <div class="signal-legend"><span><i class="legend-line"></i> EEG amplitude</span><span><i class="legend-region"></i> Annotated seizure region</span></div>
+      <svg class="signal-svg" viewBox="0 0 1100 300" preserveAspectRatio="none" role="img" aria-label="Sample EEG trace with seizure region shaded">
+        <rect x="455" y="20" width="220" height="235" class="seizure-shade"/>
+        <line x1="50" y1="255" x2="1060" y2="255" class="chart-axis"/>
+        <line x1="50" y1="30" x2="50" y2="255" class="chart-axis"/>
+        <path d="M50 152 C68 132 76 170 92 150 S115 124 130 151 S154 179 170 147 S190 129 210 152 S233 170 250 150 S270 120 290 151 S311 180 332 147 S355 128 374 153 S395 173 414 149 S438 131 452 151
+                 S464 118 475 177 S489 88 501 184 S516 101 528 190 S542 73 555 181 S568 94 581 193 S595 64 608 185 S621 82 635 178 S648 104 663 170
+                 S685 144 700 153 S720 132 740 151 S765 171 785 149 S805 126 825 151 S848 176 868 149 S892 130 912 152 S936 170 956 148 S980 125 1000 151 S1030 176 1060 149" class="signal-line"/>
+        <text x="460" y="18" class="plot-label">seizure region</text>
+        <text x="45" y="282">0 s</text><text x="490" y="282">~seizure onset</text><text x="1010" y="282">time</text>
+      </svg>
+      <p class="chart-note">Signal shown as a clean explanatory schematic rather than a direct render of the uploaded EDF. The shaded region illustrates how seizure intervals are communicated in the dashboard.</p>
+    </article>
+  </section>
+
+  <section class="section">
+    <div class="section-kicker">05 · EVENT-LEVEL ANALYSIS</div>
+    <div class="section-title-row">
+      <div><h2>Baseline vs GA + ANFIS</h2><p>Same reported event-level evaluation, presented without collapsing different metrics into a single score.</p></div>
+      <span class="tag">n=4 EVENTS · PATIENT 3</span>
+    </div>
+    <div class="comparison-wrap">
+      <table class="comparison-table">
+        <thead><tr><th>Metric</th><th>Baseline ML</th><th>GA + ANFIS</th><th>Δ / context</th></tr></thead>
+        <tbody>
+          <tr><td>Events detected</td><td><b>4 / 4</b></td><td><b>4 / 4</b></td><td><span class="same-badge">same</span></td></tr>
+          <tr><td>False alarm events</td><td><b>0</b></td><td><b>2</b></td><td><span class="neutral-badge">+2</span></td></tr>
+          <tr><td>Mean detection latency</td><td><b>12.50 s</b></td><td><b>-1.25 s</b></td><td><span class="info-badge">earlier*</span></td></tr>
+          <tr><td>Mean event overlap</td><td><b>69.25%</b></td><td><b>47.98%</b></td><td><span class="neutral-badge">-21.27 pp</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="latency-note"><b>* Why is latency negative?</b> In this event evaluation, -1.25 s means the predicted event onset occurred, on average, 1.25 seconds <strong>before the annotated seizure onset</strong>. It is not a negative processing time and should be interpreted as an onset-timing difference against the annotation.</div>
+    <div class="event-caveat">These event-level results cover <strong>n=4 annotated seizure events from patient 3</strong> in the evaluated CHB-MIT subset. They demonstrate the behavior of this experiment; they are not evidence of population-level clinical performance.</div>
+  </section>
+
+  <section class="section compact">
+    <div class="section-kicker">06 · RESEARCH NOTES</div>
+    <div class="notes">
+      <div><b>Window-level vs event-level</b><span>A positive 5-second window is not automatically treated as a separate seizure event. Post-processing merges nearby windows.</span></div>
+      <div><b>Threshold objective matters</b><span>The threshold used for window-level F1 and the threshold used for event-level detection answer different evaluation questions.</span></div>
+      <div><b>Inference is separate</b><span>New EDF uploads use the live inference model artifacts and should not be presented as additional held-out test results.</span></div>
+    </div>
+  </section>
+
+  <footer>NEUROGUARD · Research prototype · Inference output is not a clinical diagnosis.</footer>
+</main>
+
+
+
+</body>
+</html>

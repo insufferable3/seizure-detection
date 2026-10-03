@@ -1,0 +1,5 @@
+file,actual_start,actual_end,predicted_start,predicted_end,detection_latency,onset_error,offset_error,actual_duration,predicted_duration,overlap_duration,overlap_percentage
+chb03_01.edf,360.0,415.0,370.0,405.0,10.0,10.0,-10.0,55.0,35.0,35.0,63.63636363636363
+chb03_34.edf,1980.0,2030.0,1995.0,2105.0,15.0,15.0,75.0,50.0,110.0,35.0,70.0
+chb03_35.edf,2590.0,2655.0,2615.0,2655.0,25.0,25.0,0.0,65.0,40.0,40.0,61.53846153846154
+chb03_36.edf,1725.0,1780.0,1725.0,1770.0,0.0,0.0,-10.0,55.0,45.0,45.0,81.81818181818181

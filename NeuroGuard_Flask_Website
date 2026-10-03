@@ -1,0 +1,7 @@
+<script>start("/Users/saanchritu/Downloads/NeuroGuard_Flask_Website/");</script>
+<script>onHasParentDirectory();</script>
+<script>addRow("static","static",1,128,"128 B",1790940907,"02/10/2026, 17:05:07");</script>
+<script>addRow("templates","templates",1,96,"96 B",1790940907,"02/10/2026, 17:05:07");</script>
+<script>addRow("app.py","app.py",0,10947,"10.7 kB",1790920886,"02/10/2026, 11:31:26");</script>
+<script>addRow("README.md","README.md",0,1931,"1.9 kB",1790920886,"02/10/2026, 11:31:26");</script>
+<script>addRow("requirements_web.txt","requirements_web.txt",0,84,"84 B",1790920886,"02/10/2026, 11:31:26");</script>
