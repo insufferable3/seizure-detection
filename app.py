@@ -52,8 +52,13 @@ def api_validate():
         uploaded.save(path)
         info = validate_edf(path)
         return jsonify(ok=True, filename=Path(uploaded.filename).name, size_bytes=path.stat().st_size, **info)
-    except Exception as exc:
-        return jsonify(ok=False, error=f"{type(exc).__name__}: {exc}"), 400
+    except ValueError as exc:
+        return jsonify(ok=False, error=str(exc)), 400
+    except Exception:
+        return jsonify(
+            ok=False,
+            error="NeuroGuard could not read this EDF recording. Please try a standard EDF/EDF+ file with a compatible EEG channel layout."
+        ), 400
     finally:
         path.unlink(missing_ok=True)
 
@@ -85,8 +90,13 @@ def api_analyze():
         result["source"] = "sample" if use_sample else "upload"
         _save_result(result)
         return jsonify(ok=True, result=result)
-    except Exception as exc:
-        return jsonify(ok=False, error=f"{type(exc).__name__}: {exc}"), 400
+    except ValueError as exc:
+        return jsonify(ok=False, error=str(exc)), 400
+    except Exception:
+        return jsonify(
+            ok=False,
+            error="NeuroGuard could not read this EDF recording. Please try a standard EDF/EDF+ file with a compatible EEG channel layout."
+        ), 400
     finally:
         if cleanup:
             path.unlink(missing_ok=True)

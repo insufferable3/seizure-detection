@@ -37,6 +37,3 @@ The download contains one row per 5-second window: window_start, window_end, pro
 
 NOTE
 The loading stage animation is a UI progress indicator while the single Flask inference request runs; it does not expose server-side progress percentages.
-
-
-Recall Optimization is labeled as a separate threshold-tuning split; its 44.4% baseline should not be confused with the main evaluation's 42.22% baseline recall.

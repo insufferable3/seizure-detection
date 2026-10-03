@@ -152,48 +152,8 @@
     </div>
   </section>
 
-  <section class="section recall-section">
-    <div class="section-kicker">03 · RECALL OPTIMIZATION</div>
-    <div class="section-title-row">
-      <div>
-        <h2>Improving seizure recall</h2>
-        <p>Separate threshold-tuning experiment using a stratified train / validation / test split.</p>
-      </div>
-      <span class="tag">WINDOW-LEVEL · RECALL-TUNING SPLIT</span>
-    </div>
-
-    <div class="recall-summary">
-      <div class="recall-stat">
-        <span>Baseline</span><strong>44.4%</strong>
-        <small>Recall · threshold 0.50</small>
-      </div>
-      <div class="recall-transition"><b>+44.5 pp</b><span>after threshold optimization</span></div>
-      <div class="recall-stat tuned">
-        <span>Recall-tuned</span><strong>88.9%</strong>
-        <small>Recall · threshold 0.25</small>
-      </div>
-    </div>
-
-    <div class="table-wrap recall-table">
-      <table>
-        <thead><tr><th>Configuration</th><th>Threshold</th><th>Recall</th><th>Precision</th><th>F1</th><th>FP</th><th>FN</th></tr></thead>
-        <tbody>
-          <tr><td>Baseline</td><td>0.50</td><td>44.4%</td><td>66.7%</td><td>53.3%</td><td>2</td><td>5</td></tr>
-          <tr><td>Class-weighted</td><td>0.50</td><td>77.8%</td><td>53.8%</td><td>63.6%</td><td>6</td><td>2</td></tr>
-          <tr class="recall-highlight"><td><strong>Class-weighted + tuned threshold</strong></td><td><strong>0.25</strong></td><td><strong>88.9%</strong></td><td>42.1%</td><td>57.1%</td><td>11</td><td>1</td></tr>
-          <tr><td>Random oversampling</td><td>0.50</td><td>66.7%</td><td>60.0%</td><td>63.2%</td><td>4</td><td>3</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="recall-explanation">
-      <div><strong>Why did recall increase?</strong><span>The original 0.50 decision threshold was conservative. Lowering the threshold increases seizure windows classified as positive, reducing false negatives but increasing false positives.</span></div>
-      <div><strong>Important distinction</strong><span>The 44.4% → 88.9% change belongs to this recall-tuning experiment. The main baseline evaluation above uses a different held-out split and reports 42.22% recall.</span></div>
-    </div>
-  </section>
-
-<section class="section">
-    <div class="section-kicker">04 · EEG SIGNAL VIEW</div>
+  <section class="section">
+    <div class="section-kicker">03 · EEG SIGNAL VIEW</div>
     <div class="section-title-row">
       <div><h2>Sample EEG trace</h2><p>Illustrative seizure-region overlay for explaining the event-level output.</p></div>
       <span class="tag">CHB03 · SAMPLE VIEW</span>
@@ -215,7 +175,7 @@
   </section>
 
   <section class="section">
-    <div class="section-kicker">05 · EVENT-LEVEL ANALYSIS</div>
+    <div class="section-kicker">04 · EVENT-LEVEL ANALYSIS</div>
     <div class="section-title-row">
       <div><h2>Baseline vs GA + ANFIS</h2><p>Same reported event-level evaluation, presented without collapsing different metrics into a single score.</p></div>
       <span class="tag">n=4 EVENTS · PATIENT 3</span>
@@ -236,7 +196,7 @@
   </section>
 
   <section class="section compact">
-    <div class="section-kicker">06 · RESEARCH NOTES</div>
+    <div class="section-kicker">05 · RESEARCH NOTES</div>
     <div class="notes">
       <div><b>Window-level vs event-level</b><span>A positive 5-second window is not automatically treated as a separate seizure event. Post-processing merges nearby windows.</span></div>
       <div><b>Threshold objective matters</b><span>The threshold used for window-level F1 and the threshold used for event-level detection answer different evaluation questions.</span></div>
@@ -246,8 +206,5 @@
 
   <footer>NEUROGUARD · Research prototype · Inference output is not a clinical diagnosis.</footer>
 </main>
-
-
-
 </body>
 </html>

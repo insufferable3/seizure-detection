@@ -69,21 +69,112 @@ def _merge_events(intervals, merge_gap_sec, min_duration_sec):
     ]
 
 
+
+def _read_edf_header(edf_path):
+    """Read the fixed EDF header directly.
+
+    This intentionally avoids MNE for preflight validation. Some EDF files can
+    contain metadata quirks that make a full MNE open fail even though the EDF
+    signal header is readable. The model itself still uses MNE for inference.
+    """
+    path = Path(edf_path)
+    with path.open("rb") as f:
+        header = f.read(256)
+        if len(header) < 256:
+            raise ValueError("The file is too small to be a valid EDF recording.")
+
+        try:
+            version = header[0:8].decode("ascii", errors="ignore").strip()
+            header_bytes = int(header[184:192].decode("ascii", errors="ignore").strip())
+            n_records = int(header[236:244].decode("ascii", errors="ignore").strip())
+            record_duration = float(header[244:252].decode("ascii", errors="ignore").strip())
+            n_signals = int(header[252:256].decode("ascii", errors="ignore").strip())
+        except (ValueError, TypeError):
+            raise ValueError("The EDF header could not be parsed. Please upload a standard EDF/EDF+ recording.")
+
+        if header_bytes < 256 or n_signals < 1:
+            raise ValueError("The EDF header contains invalid channel metadata.")
+
+        # Read the complete per-signal header.
+        f.seek(0)
+        signal_header = f.read(header_bytes)
+        if len(signal_header) < header_bytes:
+            raise ValueError("The EDF header is incomplete or truncated.")
+
+    labels_start = 256
+    labels_end = labels_start + 16 * n_signals
+    labels_raw = signal_header[labels_start:labels_end]
+    labels = [
+        labels_raw[i * 16:(i + 1) * 16].decode("latin-1", errors="ignore").strip()
+        for i in range(n_signals)
+    ]
+
+    # Samples per record is the 216-byte block in the per-signal header.
+    # Offsets are relative to the per-signal header:
+    # labels 0, transducer 16, phys_dim 96, phys_min 104, phys_max 112,
+    # dig_min 120, dig_max 128, prefilter 136, samples/record 216.
+    samples_offset = 256 + (216 * n_signals)
+    samples_raw = signal_header[samples_offset:samples_offset + 8 * n_signals]
+    samples_per_record = []
+    for i in range(n_signals):
+        raw = samples_raw[i * 8:(i + 1) * 8]
+        try:
+            samples_per_record.append(int(raw.decode("ascii", errors="ignore").strip()))
+        except ValueError:
+            samples_per_record.append(0)
+
+    if record_duration <= 0 or n_records <= 0 or not any(v > 0 for v in samples_per_record):
+        raise ValueError("The EDF contains invalid recording-duration or sampling metadata.")
+
+    duration_sec = float(n_records * record_duration)
+    sfreqs = [v / record_duration for v in samples_per_record if v > 0]
+    sfreq = float(sfreqs[0]) if sfreqs else 0.0
+
+    return {
+        "version": version,
+        "channels": n_signals,
+        "channel_names": labels,
+        "sampling_frequency": sfreq,
+        "duration_sec": duration_sec,
+        "samples_per_record": samples_per_record,
+        "record_duration": record_duration,
+    }
+
 def validate_edf(edf_path):
-    """Validate extension and channel compatibility without running inference."""
+    """Preflight validation using the EDF header only.
+
+    This avoids opening the entire recording with MNE during upload validation,
+    so a metadata quirk cannot leak a low-level parser exception into the UI.
+    """
     path = Path(edf_path)
     if path.suffix.lower() != ".edf":
         raise ValueError("Only .edf files are supported.")
     if not path.exists():
         raise FileNotFoundError("EDF file was not found.")
+
     _, _, selected = _load_artifacts()
-    raw = mne.io.read_raw_edf(str(path), preload=False, verbose=False)
-    channels = len(raw.ch_names)
-    required = [int(x.split("_")[0][2:]) for x in selected if x.startswith("ch") and "_" in x]
+    info = _read_edf_header(path)
+
+    required = [
+        int(x.split("_")[0][2:])
+        for x in selected
+        if x.startswith("ch") and "_" in x and x.split("_")[0][2:].isdigit()
+    ]
     minimum = max(required) + 1 if required else 1
-    if channels < minimum:
-        raise ValueError(f"EDF has {channels} channels; this trained model requires at least {minimum} channels.")
-    return {"channels": channels, "sampling_frequency": float(raw.info["sfreq"]), "duration_sec": float(raw.n_times / raw.info["sfreq"])}
+
+    if info["channels"] < minimum:
+        raise ValueError(
+            f"This recording has {info['channels']} channels. "
+            f"NeuroGuard's trained feature layout requires at least {minimum} channels."
+        )
+
+    return {
+        "channels": info["channels"],
+        "sampling_frequency": info["sampling_frequency"],
+        "duration_sec": info["duration_sec"],
+        "channel_names": info["channel_names"],
+        "compatible": True,
+    }
 
 
 def predict_edf(edf_path, threshold=DEFAULT_THRESHOLD, merge_gap_sec=DEFAULT_MERGE_GAP_SEC, min_duration_sec=DEFAULT_MIN_DURATION_SEC):
