@@ -1,7 +1,6 @@
 from pathlib import Path
 import uuid
 import numpy as np
-import pandas as pd
 import mne
 import joblib
 from scipy.signal import welch
@@ -183,32 +182,62 @@ def predict_edf(edf_path, threshold=DEFAULT_THRESHOLD, merge_gap_sec=DEFAULT_MER
     merge_gap_sec = float(max(0, merge_gap_sec))
     min_duration_sec = float(max(0, min_duration_sec))
 
-    raw = mne.io.read_raw_edf(edf_path, preload=True, verbose=False)
-    data = raw.get_data()
-    sf = float(raw.info["sfreq"])
-    total_seconds = data.shape[1] / sf
+    # Keep the EDF backed by its file and read only one analysis window at a
+    # time. preload=True plus get_data() materialized the entire recording in
+    # RAM before feature extraction, which can exceed small hosted instances.
+    raw = mne.io.read_raw_edf(edf_path, preload=False, verbose=False)
+    try:
+        sf = float(raw.info["sfreq"])
+        n_channels = len(raw.ch_names)
+        total_samples = int(raw.n_times)
+        total_seconds = total_samples / sf
 
-    required_indices = [int(x.split("_")[0][2:]) for x in selected if x.startswith("ch") and "_" in x]
-    if required_indices and max(required_indices) >= data.shape[0]:
-        raise ValueError(f"This EDF has {data.shape[0]} channels, but the trained feature set requires at least {max(required_indices)+1} channels.")
+        required_indices = [
+            int(x.split("_")[0][2:]) for x in selected
+            if x.startswith("ch") and "_" in x and x.split("_")[0][2:].isdigit()
+        ]
+        if required_indices and max(required_indices) >= n_channels:
+            raise ValueError(f"This EDF has {n_channels} channels, but the trained feature set requires at least {max(required_indices)+1} channels.")
 
-    window_samples = int(round(WINDOW_SEC * sf))
-    rows, starts = [], []
-    n_windows = data.shape[1] // window_samples
-    for i in range(n_windows):
-        start_sample = i * window_samples
-        window = data[:, start_sample:start_sample + window_samples]
-        rows.append(_extract_window_features(window, sf))
-        starts.append(i * WINDOW_SEC)
-    if not rows:
-        raise ValueError("EDF is shorter than one 5-second analysis window.")
+        window_samples = int(round(WINDOW_SEC * sf))
+        n_windows = total_samples // window_samples
+        if not n_windows:
+            raise ValueError("EDF is shorter than one 5-second analysis window.")
 
-    frame = pd.DataFrame(rows).replace([np.inf, -np.inf], np.nan).fillna(0.0)
-    missing = [f for f in selected if f not in frame.columns]
-    if missing:
-        raise ValueError(f"Uploaded EDF does not match the trained feature layout. Missing selected feature: {missing[0]}")
+        starts = [i * WINDOW_SEC for i in range(n_windows)]
+        probabilities_list = []
+        feature_columns = None
+        feature_batch = []
+        batch_size = 128
 
-    probabilities = model.predict_proba(scaler.transform(frame[selected].to_numpy(dtype=float)))[:, 1]
+        def predict_batch():
+            if not feature_batch:
+                return
+            values = np.asarray(feature_batch, dtype=float)
+            values = np.nan_to_num(values, nan=0.0, posinf=0.0, neginf=0.0)
+            scaled = scaler.transform(values)
+            probabilities_list.extend(model.predict_proba(scaled)[:, 1].astype(float).tolist())
+            feature_batch.clear()
+
+        for i in range(n_windows):
+            start_sample = i * window_samples
+            stop_sample = start_sample + window_samples
+            window = raw.get_data(start=start_sample, stop=stop_sample)
+            features = _extract_window_features(window, sf)
+            if feature_columns is None:
+                missing = [name for name in selected if name not in features]
+                if missing:
+                    raise ValueError(f"Uploaded EDF does not match the trained feature layout. Missing selected feature: {missing[0]}")
+                feature_columns = selected
+            # Keep only a small bounded batch of feature rows in memory.
+            feature_batch.append([features[name] for name in feature_columns])
+            if len(feature_batch) >= batch_size:
+                predict_batch()
+        predict_batch()
+        probabilities = np.asarray(probabilities_list, dtype=float)
+    finally:
+        raw.close()
+
     positive = probabilities >= threshold
 
     raw_intervals = []
@@ -223,5 +252,5 @@ def predict_edf(edf_path, threshold=DEFAULT_THRESHOLD, merge_gap_sec=DEFAULT_MER
         "peak_probability": float(probabilities.max()), "detected_events": len(events), "events": events,
         "threshold": threshold, "window_sec": WINDOW_SEC, "merge_gap_sec": merge_gap_sec,
         "min_duration_sec": min_duration_sec, "sampling_frequency": sf, "duration_sec": total_seconds,
-        "channels": int(data.shape[0]), "windows": windows, "job_id": uuid.uuid4().hex,
+        "channels": int(n_channels), "windows": windows, "job_id": uuid.uuid4().hex,
     }
