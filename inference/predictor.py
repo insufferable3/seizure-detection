@@ -3,6 +3,7 @@ import uuid
 import numpy as np
 import mne
 import joblib
+from scipy.integrate import trapezoid
 from scipy.signal import welch
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -33,7 +34,7 @@ def _load_artifacts():
 def _bandpower(x, sf, low, high):
     freqs, psd = welch(x, fs=sf, nperseg=min(len(x), int(sf * 2)))
     mask = (freqs >= low) & (freqs <= high)
-    return float(np.trapz(psd[mask], freqs[mask])) if np.any(mask) else 0.0
+    return float(trapezoid(psd[mask], freqs[mask])) if np.any(mask) else 0.0
 
 
 def _extract_window_features(data, sf):
@@ -41,13 +42,23 @@ def _extract_window_features(data, sf):
     for ch_idx in range(data.shape[0]):
         x = np.asarray(data[ch_idx], dtype=float)
         prefix = f"ch{ch_idx}"
+        squared = np.square(x)
         values[f"{prefix}_mean"] = float(np.mean(x))
         values[f"{prefix}_std"] = float(np.std(x))
         values[f"{prefix}_variance"] = float(np.var(x))
-        values[f"{prefix}_rms"] = float(np.sqrt(np.mean(x ** 2)))
-        values[f"{prefix}_energy"] = float(np.sum(x ** 2))
+        values[f"{prefix}_rms"] = float(np.sqrt(np.mean(squared)))
+        values[f"{prefix}_energy"] = float(np.sum(squared))
+
+        # Welch output is shared by every frequency band for this channel.
+        # Slice its contiguous bins directly to avoid allocating band masks.
+        freqs, psd = welch(x, fs=sf, nperseg=min(len(x), int(sf * 2)))
         for band, (lo, hi) in BANDS.items():
-            values[f"{prefix}_{band}_power"] = _bandpower(x, sf, lo, hi)
+            first = int(np.searchsorted(freqs, lo, side="left"))
+            stop = int(np.searchsorted(freqs, hi, side="right"))
+            values[f"{prefix}_{band}_power"] = (
+                float(trapezoid(psd[first:stop], freqs[first:stop]))
+                if first < stop else 0.0
+            )
     return values
 
 
